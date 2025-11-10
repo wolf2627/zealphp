@@ -15,8 +15,14 @@ class REST {
         $this->inputs();
     }
 
+    // Get a server variable with a default fallback
+    private function getServerVar($key, $default = null){
+        $server = App::$superglobals ? $_SERVER : G::instance()->server;
+        return $server[$key] ?? $default;
+    }
+
     public function get_referer(){
-        return $_SERVER['HTTP_REFERER'];
+        return $this->getServerVar('HTTP_REFERER');
     }
 
     public function response($data, $status){
@@ -73,21 +79,32 @@ class REST {
     }
 
     public function get_request_method(){
-        return G::instance()->server['REQUEST_METHOD'];
-        
-        // return $_SERVER['REQUEST_METHOD'];
+        return $this->getServerVar('REQUEST_METHOD', 'GET');
     }
 
     private function inputs(){
+
+        $g = G::instance();
+
+        // input from superglobals or G instance based on superglobal
+        if(App::$superglobals){
+            $getData = $_GET;
+            $postData = $_POST;
+        } else {
+            $getData = $g->get;
+            $postData = $g->post;
+        }
+
         switch($this->get_request_method()){
             case "POST":
-                //$this->_request = $this->cleanInputs($_POST);
-                $this->_request =  $this->cleanInputs(array_merge($_GET,$_POST));
+                //$this->_request = $this->cleanInputs($postData);
+                $this->_request =  $this->cleanInputs(array_merge($getData,$postData));
                 break;
             case "GET":
-                $this->_request = $this->cleanInputs($_GET);
+                $this->_request = $this->cleanInputs($getData);
+                break;
             case "DELETE":
-                $this->_request = $this->cleanInputs($_GET);
+                $this->_request = $this->cleanInputs($getData);
                 break;
             case "PUT":
                 parse_str(file_get_contents("php://input"),$this->_request);
